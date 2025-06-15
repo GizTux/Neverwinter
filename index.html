@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staträknare</title>
+  <style>
+    body { font-family: sans-serif; margin: 40px; background: #f4f4f4; }
+    .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 6px; text-align: left; }
+    th { background: #f8f8f8; }
+    tr:nth-child(even) td { background: #fafafa; }
+    input { width: 80px; }
+    .card > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+input {
+  width: 70px;
+  max-width: 100%;
+  margin-right: 10px;
+}
+.bonus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (min-width: 768px) {
+      .card-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 20px;
+      }
+  </style>
+</head>
+<body>
+<div class="card-grid">
+<div class="card">
+  <h2>Base</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Stat</th>
+        <th>Rating</th>
+        <th>Total %</th>
+      </tr>
+    </thead>
+    <tbody id="baseStats"></tbody>
+  </table>
+</div>
+<div class="card">
+  <h2>Gear</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Stat</th>
+        <th>+Rating</th>
+        <th>+Total %</th>
+      </tr>
+    </thead>
+    <tbody id="extraBonuses"></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Group bonus</h2>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"total":5}}'> Flapjack (+5% C A)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"total":3.5},"Combat Advantage":{"total":3.5}}'> Portabello (+3.5% Power & C A)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"total":2}}'> Minsc (+2% C A)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"total":5}}'> Tutor (+5% C A)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Critical Strike":{"total":3}}'> Blue Fire Eye (+3% Crit Strike)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"total":2},"Critical Strike":{"total":2}}'> Etrien (+2% Power & Crit Strike)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"rating":2250},"Defense":{"rating":2250}}'> Runic Aura (+2250 Power & Def)</label><br>
+  <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"rating":2250},"Accuracy":{"rating":2250}}'> Mystic Aura (+2250 Power & Acc)</label><br>
+  <label><input type="number" id="raptor-count" min="0" max="15" value="0" style="width: 30px; margin-left: 8px; margin-right: 38px;"> Raptors (4.5% Power): </label><br>
+
+</div>
+
+<div class="card">
+  <h2>Result</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Stat</th>
+        <th>Rating</th>
+        <th>Total %</th>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+</div>
+
+<script>
+  const stats = [
+    "Power", "Accuracy", "Combat Advantage",
+    "Critical Strike", "Critical Severity", "Defense", "Awareness"
+  ];
+
+  const baseStatsDiv = document.getElementById("baseStats");
+  const resultsBody = document.getElementById("results");
+
+  const baseInputs = {}, totalInputs = {};
+  const extraRatingInputs = {}, extraTotalInputs = {};
+  const ratingOutputs = {}, totalOutputs = {};
+
+  // Skapa inputs
+ stats.forEach(stat => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><strong>${stat}</strong></td>
+    <td><input type="number" id="base-rating-${stat}" value="0"></td>
+    <td><input type="number" id="base-total-${stat}" value="0" step="0.1"></td>
+  `;
+  baseStatsDiv.appendChild(tr);
+
+  baseInputs[stat] = document.getElementById(`base-rating-${stat}`);
+  totalInputs[stat] = document.getElementById(`base-total-${stat}`);
+});
+const extraBonusesDiv = document.getElementById("extraBonuses");
+
+stats.forEach(stat => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><strong>${stat}</strong></td>
+    <td><input type="number" id="extra-rating-${stat}" value="0"></td>
+    <td><input type="number" id="extra-total-${stat}" value="0" step="0.1"></td>
+  `;
+  extraBonusesDiv.appendChild(tr);
+
+  extraRatingInputs[stat] = document.getElementById(`extra-rating-${stat}`);
+  extraTotalInputs[stat] = document.getElementById(`extra-total-${stat}`);
+});
+
+
+  // Skapa resultat-rader
+  stats.forEach(stat => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${stat}</td>
+      <td id="result-rating-${stat}">0</td>
+      <td id="result-total-${stat}">0%</td>
+    `;
+    resultsBody.appendChild(tr);
+    ratingOutputs[stat] = document.getElementById(`result-rating-${stat}`);
+    totalOutputs[stat] = document.getElementById(`result-total-${stat}`);
+  });
+
+  const bonuses = document.querySelectorAll(".bonus");
+
+  function update() {
+    const rating = {}, total = {};
+
+    stats.forEach(stat => {
+      rating[stat] = +baseInputs[stat].value || 0;
+      total[stat] = +totalInputs[stat].value || 0;
+      rating[stat] += +extraRatingInputs[stat].value || 0;
+total[stat] += +extraTotalInputs[stat].value || 0;
+
+    });
+    
+    // Hantera Raptor-bonusen
+    const raptorCount = parseInt(document.getElementById("raptor-count").value) || 0;
+    total["Power"] += raptorCount * 4.5;
+
+    bonuses.forEach(cb => {
+      if (!cb.checked) return;
+      const bonusData = JSON.parse(cb.dataset.bonus);
+      for (const stat in bonusData) {
+        if (bonusData[stat].rating)
+          rating[stat] = (rating[stat] || 0) + bonusData[stat].rating;
+        if (bonusData[stat].total)
+          total[stat] = (total[stat] || 0) + bonusData[stat].total;
+      }
+    });
+
+    stats.forEach(stat => {
+      ratingOutputs[stat].textContent = rating[stat];
+      totalOutputs[stat].textContent = total[stat].toFixed(1) + "%";
+    });
+  }
+  document.getElementById("raptor-count").addEventListener("input", update);
+
+  bonuses.forEach(cb => cb.addEventListener("change", update));
+  stats.forEach(stat => {
+    baseInputs[stat].addEventListener("input", update);
+    totalInputs[stat].addEventListener("input", update);
+  });
+  stats.forEach(stat => {
+  extraRatingInputs[stat].addEventListener("input", update);
+  extraTotalInputs[stat].addEventListener("input", update);
+});
+
+
+  update();
+</script>
+
+</body>
+</html>
