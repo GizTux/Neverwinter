@@ -35,6 +35,26 @@ input {
         grid-template-rows: auto auto;
         gap: 20px;
       }
+  .card-grid {
+  display: grid;
+  gap: 20px;
+}
+
+/* Mobil (default) – en kolumn */
+@media (max-width: 767px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dator – två kolumner, två rader */
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto auto;
+  }
+}
+
   </style>
 </head>
 <body>
