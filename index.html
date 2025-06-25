@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Staträknare</title>
   <style>
     body { font-family: sans-serif; margin: 40px; background: #f4f4f4; }
@@ -23,10 +23,43 @@
       max-width: 100%;
       margin-right: 10px;
     }
-    .bonus-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+
+    @media (max-width: 600px) {
+      body { margin: 15px; }
+      .card { padding: 15px; }
+      table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%;
+      }
+      thead tr { display: none; }
+      tr {
+        margin-bottom: 15px;
+        border-bottom: 1px solid #ddd;
+      }
+      td {
+        padding-left: 50%;
+        position: relative;
+        text-align: left;
+        white-space: normal;
+      }
+      td::before {
+        position: absolute;
+        top: 6px;
+        left: 10px;
+        width: 45%;
+        white-space: nowrap;
+        font-weight: 600;
+        content: attr(data-label);
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        margin-right: 0;
+      }
+      label {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+      }
     }
   </style>
 </head>
@@ -45,6 +78,7 @@
     <tbody id="baseStats"></tbody>
   </table>
 </div>
+
 <div class="card">
   <h2>Gear proc</h2>
   <table>
@@ -59,6 +93,7 @@
   </table>
 </div>
 
+<!-- BONUSLISTA UTAN DE TRE BORTTAGNA -->
 <div class="card">
   <h2>Bonus</h2>
   <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"total":5}}'> Flapjack (+5% Combat Advantage)</label><br>
@@ -69,12 +104,14 @@
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"total":2},"Critical Strike":{"total":2}}'> Etrien (+2% Power & Critical Strike)</label><br>
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"rating":2250},"Defense":{"rating":2250}}'> Runic Aura (+2250 Power & Defense)</label><br>
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"rating":2250},"Accuracy":{"rating":2250}}'> Mystic Aura (+2250 Power & Accuracy)</label><br>
+    <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"rating":2250},"Awareness":{"rating":2250}}'> Pact Tactics (+2250 Combat Advantage & Awareness)</label><br>
+
   <label style="display: flex; align-items: center; gap: 10px;">
     <input type="number" id="raptor-count" min="0" max="15" value="0" style="width: 50px;">
     Raptor-bonus (4.5% Power per spelare med Raptor)
   </label><br>
-  <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"rating":2250},"Awareness":{"rating":2250}}'> Pact Tactics (+2250 Combat Advantage & Awareness)</label><br>
 </div>
+
 
 <div class="card">
   <h2>Result</h2>
@@ -93,7 +130,8 @@
 <script>
   const stats = [
     "Power", "Accuracy", "Combat Advantage",
-    "Critical Strike", "Critical Severity", "Defense", "Awareness"
+    "Critical Strike", "Critical Severity", "Defense", "Awareness",
+    "Critical Avoidance", "Stamina Regen", "Outgoing Healing"
   ];
 
   const baseStatsDiv = document.getElementById("baseStats");
@@ -103,43 +141,37 @@
   const extraRatingInputs = {}, extraTotalInputs = {};
   const ratingOutputs = {}, totalOutputs = {};
 
-  // Skapa inputs
   stats.forEach(stat => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><strong>${stat}</strong></td>
-      <td><input type="number" id="base-rating-${stat}" value="0"></td>
-      <td><input type="number" id="base-total-${stat}" value="0" step="0.1"></td>
+      <td data-label="Stat"><strong>${stat}</strong></td>
+      <td data-label="Rating"><input type="number" id="base-rating-${stat}" value="0"></td>
+      <td data-label="Total %"><input type="number" id="base-total-${stat}" value="0" step="0.1"></td>
     `;
     baseStatsDiv.appendChild(tr);
-
     baseInputs[stat] = document.getElementById(`base-rating-${stat}`);
     totalInputs[stat] = document.getElementById(`base-total-${stat}`);
   });
 
   const extraBonusesDiv = document.getElementById("extraBonuses");
-
   stats.forEach(stat => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><strong>${stat}</strong></td>
-      <td><input type="number" id="extra-rating-${stat}" value="0"></td>
-      <td><input type="number" id="extra-total-${stat}" value="0" step="0.1"></td>
+      <td data-label="Stat"><strong>${stat}</strong></td>
+      <td data-label="+Rating"><input type="number" id="extra-rating-${stat}" value="0"></td>
+      <td data-label="+Total %"><input type="number" id="extra-total-${stat}" value="0" step="0.1"></td>
     `;
     extraBonusesDiv.appendChild(tr);
-
     extraRatingInputs[stat] = document.getElementById(`extra-rating-${stat}`);
     extraTotalInputs[stat] = document.getElementById(`extra-total-${stat}`);
   });
 
-
-  // Skapa resultat-rader
   stats.forEach(stat => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${stat}</td>
-      <td id="result-rating-${stat}">0</td>
-      <td id="result-total-${stat}">0%</td>
+      <td data-label="Stat">${stat}</td>
+      <td data-label="Rating" id="result-rating-${stat}">0</td>
+      <td data-label="Total %" id="result-total-${stat}">0%</td>
     `;
     resultsBody.appendChild(tr);
     ratingOutputs[stat] = document.getElementById(`result-rating-${stat}`);
@@ -149,49 +181,44 @@
   const bonuses = document.querySelectorAll(".bonus");
 
   function update() {
-    const rating = {}, total = {};
+    const baseRating = {}, baseTotal = {};
+    const addedRating = {}, addedTotal = {};
+    const finalRating = {}, finalTotal = {};
 
     stats.forEach(stat => {
-      rating[stat] = +baseInputs[stat].value || 0;
-      total[stat] = +totalInputs[stat].value || 0;
-      rating[stat] += +extraRatingInputs[stat].value || 0;
-      total[stat] += +extraTotalInputs[stat].value || 0;
+      baseRating[stat] = +baseInputs[stat].value || 0;
+      baseTotal[stat] = +totalInputs[stat].value || 0;
+      addedRating[stat] = +extraRatingInputs[stat].value || 0;
+      addedTotal[stat] = +extraTotalInputs[stat].value || 0;
     });
 
-    // Hantera Raptor-bonusen
     const raptorCount = parseInt(document.getElementById("raptor-count").value) || 0;
-    total["Power"] += raptorCount * 4.5;
+    addedTotal["Power"] += raptorCount * 4.5;
 
     bonuses.forEach(cb => {
       if (!cb.checked) return;
       const bonusData = JSON.parse(cb.dataset.bonus);
       for (const stat in bonusData) {
         if (bonusData[stat].rating)
-          rating[stat] = (rating[stat] || 0) + bonusData[stat].rating;
+          addedRating[stat] = (addedRating[stat] || 0) + bonusData[stat].rating;
         if (bonusData[stat].total)
-          total[stat] = (total[stat] || 0) + bonusData[stat].total;
+          addedTotal[stat] = (addedTotal[stat] || 0) + bonusData[stat].total;
       }
     });
 
-    // *** NYTILLÄGG: Konvertera rating till total % (1000 rating = 1%) ***
     stats.forEach(stat => {
-      total[stat] += rating[stat] / 1000;
-    });
-
-    stats.forEach(stat => {
-      ratingOutputs[stat].textContent = rating[stat];
-      totalOutputs[stat].textContent = total[stat].toFixed(1) + "%";
+      finalRating[stat] = baseRating[stat] + addedRating[stat];
+      finalTotal[stat] = baseTotal[stat] + addedTotal[stat] + (addedRating[stat] / 1000);
+      ratingOutputs[stat].textContent = finalRating[stat];
+      totalOutputs[stat].textContent = finalTotal[stat].toFixed(1) + "%";
     });
   }
 
   document.getElementById("raptor-count").addEventListener("input", update);
-
   bonuses.forEach(cb => cb.addEventListener("change", update));
   stats.forEach(stat => {
     baseInputs[stat].addEventListener("input", update);
     totalInputs[stat].addEventListener("input", update);
-  });
-  stats.forEach(stat => {
     extraRatingInputs[stat].addEventListener("input", update);
     extraTotalInputs[stat].addEventListener("input", update);
   });
