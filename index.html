@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <title>Staträknare</title>
+  <title>Statcalculator</title>
   <style>
     body { font-family: sans-serif; margin: 40px; background: #f4f4f4; }
     .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -67,6 +67,7 @@
 
 <div class="card">
   <h2>Base</h2>
+  <p><i>Input your stats before joining group. Be aware of stats procing in PE and stronghold</i></p>
   <table>
     <thead>
       <tr>
@@ -81,6 +82,7 @@
 
 <div class="card">
   <h2>Gear proc</h2>
+  <p><i>Check all your gear and put in their stats, don't forget combat enchantment, weapons and comp.</i></p>
   <table>
     <thead>
       <tr>
@@ -96,6 +98,7 @@
 <!-- BONUSLISTA UTAN DE TRE BORTTAGNA -->
 <div class="card">
   <h2>Bonus</h2>
+  <p><i>Check the companions and auras. If in a trial and tanks both using packt, ad 1125 comb adv and awareness in "Gear proc". Ad how many raptors there's in your group.</i></p>
   <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"total":5}}'> Flapjack (+5% Combat Advantage)</label><br>
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"total":3.5},"Combat Advantage":{"total":3.5}}'> Portabello (+3.5% Power & Combat Advantage)</label><br>
   <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"total":2}}'> Minsc (+2% Combat Advantage)</label><br>
@@ -104,17 +107,15 @@
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"total":2},"Critical Strike":{"total":2}}'> Etrien (+2% Power & Critical Strike)</label><br>
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"rating":2250},"Defense":{"rating":2250}}'> Runic Aura (+2250 Power & Defense)</label><br>
   <label><input type="checkbox" class="bonus" data-bonus='{"Power":{"rating":2250},"Accuracy":{"rating":2250}}'> Mystic Aura (+2250 Power & Accuracy)</label><br>
-    <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"rating":2250},"Awareness":{"rating":2250}}'> Pact Tactics (+2250 Combat Advantage & Awareness)</label><br>
-
+  <label><input type="checkbox" class="bonus" data-bonus='{"Combat Advantage":{"rating":2250},"Awareness":{"rating":2250}}'> Pact Tactics (+2250 Combat Advantage & Awareness)</label><br>
   <label style="display: flex; align-items: center; gap: 10px;">
-    <input type="number" id="raptor-count" min="0" max="15" value="0" style="width: 50px;">
-    Raptor-bonus (4.5% Power per spelare med Raptor)
-  </label><br>
+  <input type="number" id="raptor-count" min="0" max="15" value="0" style="width: 50px;">Raptor-bonus (4.5% Power per spelare med Raptor)</label><br>
 </div>
 
 
 <div class="card">
   <h2>Result</h2>
+  <p><i>Here you see your final stats, in group, full proc</i></p>
   <table>
     <thead>
       <tr>
